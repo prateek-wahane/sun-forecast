@@ -28,7 +28,7 @@ docker run -p 8080:8080 -e OPENAI_API_KEY=sk-xxxx sun-forecast
 ### Run
 ```bash
 
-set APP_HTTP_CLIENT=resttemplate && mvn -U clean package && mvn spring-boot:run
+mvn -U clean package && mvn spring-boot:run
 
 ```
 
@@ -44,3 +44,15 @@ http://localhost:8080/api/sun-forecast?city=Mumbai
   "enhanced_message": "Tomorrow in Mumbai, the sun will rise at 6:26 AM and set at 6:39 PM IST. Don't miss the beautiful golden hour!"
 }
 
+```
+
+### health checks :
+```bash
+http://localhost:8080/actuator/health
+
+http://localhost:8080/actuator/info
+
+http://localhost:8080/actuator/health/liveness
+
+http://localhost:8080/actuator/health/readiness
+```

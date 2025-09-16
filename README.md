@@ -16,8 +16,31 @@ a REST API that accepts a `city` name, calls **Open-Meteo** geocoding + forecast
 - Maven 3.9+
 - (Optional) `OPENAI_API_KEY` env var to enable AI narration (fallback works without it).
 
+
+
+### Docker File
+```bash
+
+docker build -t sun-forecast .
+docker run -p 8080:8080 -e OPENAI_API_KEY=sk-xxxx sun-forecast
+
+```
 ### Run
 ```bash
-mvn spring-boot:run
-# or
-make run
+
+set APP_HTTP_CLIENT=resttemplate && mvn -U clean package && mvn spring-boot:run
+
+```
+
+### local host url and JSON Sample :
+```bash
+http://localhost:8080/api/sun-forecast?city=Mumbai
+
+
+{
+  "city": "Mumbai",
+  "sunrise": "2025-09-17T06:26",
+  "sunset": "2025-09-17T18:39",
+  "enhanced_message": "Tomorrow in Mumbai, the sun will rise at 6:26 AM and set at 6:39 PM IST. Don't miss the beautiful golden hour!"
+}
+

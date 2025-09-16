@@ -106,10 +106,6 @@ String enhanced = narrationService.narrate(prompt);
 
 ```
 
-
-
-
-
 ### How to run with/without AI:
 
 With AI (requires active quota):
@@ -140,3 +136,132 @@ Without AI (stub fallback):
 ### Run tests: 
 ```bash
 mvn -U clean test
+
+```
+
+### Implementation checklist
+
+**Java + Spring Boot app** → SunForecastApplication, Boot 3 project with controllers, services, config.
+
+**REST API + LangChain4j** → GET /api/sun-forecast?city=... returns JSON; NarrationService via LangChain4j (OpenAI) with a safe wrapper + StubNarrationService fallback/toggle (app.ai.enabled, OPENAI_API_KEY).
+
+**RestTemplate** : GeocodingClientRt, OpenMeteoForecastClientRt
+
+**Performance (caching)** → Caffeine cache with async mode so Mono values cache correctly:
+```@Cacheable("forecastByCity")``` in ```ForecastService```
+
+
+
+## Architecture
+
+### Component view
+
+```mermaid
+flowchart LR
+  subgraph Client
+    B[Browser / cURL / Postman]
+  end
+
+  subgraph App[Spring Boot App]
+    C[Controller\n/api/sun-forecast]
+    S[ForecastService]
+    E[GlobalExceptionHandler]
+    CA[Caffeine Cache\nforecastByCity (async)]
+    AI[NarrationService\n(LangChain4j or Stub)]
+    ACT[Actuator\n/actuator/*]
+  end
+
+  subgraph External
+    OMg[Open-Meteo Geocoding API\n/v1/search]
+    OMf[Open-Meteo Forecast API\n/v1/forecast]
+    OAI[OpenAI API\n(via LangChain4j)]
+  end
+
+  B --> C --> S
+  S -->|@Cacheable| CA
+  S -->|geocode| OMg
+  S -->|forecast| OMf
+  S -->|enhance message| AI --> OAI
+  C --> E
+  App --> ACT
+```
+
+### Request flow
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as User
+  participant C as Controller
+  participant S as ForecastService
+  participant GC as GeocodingClient (WebClient/RT)
+  participant FC as ForecastClient (WebClient/RT)
+  participant AI as NarrationService (L4J/Stub)
+
+  U->>C: GET /api/sun-forecast?city=Berlin
+  C->>S: getForecast("Berlin")
+  S->>S: validate city + check cache
+  S->>GC: geocode("Berlin")
+  GC-->>S: lat/lon
+  S->>FC: forecast(lat, lon, daily=sunrise,sunset, tz=Asia/Kolkata)
+  FC-->>S: sunrise[], sunset[]
+  S->>S: pick index (tomorrow if available)
+  S->>AI: narrate("Tomorrow in Berlin, ... AM/PM IST.")
+  AI-->>S: short natural sentence
+  S-->>C: SunForecastResponse
+  C-->>U: 200 OK JSON
+```
+
+
+## Project structure
+```text
+sun-forecast/
+├─ README.md
+├─ openapi.yaml
+├─ postman_collection.json
+├─ Dockerfile
+├─ docker-compose.yml
+├─ Makefile
+├─ pom.xml
+├─ .gitignore
+├─ .github/
+│  └─ workflows/
+│     └─ maven.yml
+└─ src/
+   ├─ main/
+   │  ├─ java/com/rock8tech/sunforecast/
+   │  │  ├─ SunForecastApplication.java
+   │  │  ├─ controller/
+   │  │  │  ├─ CityForecastController.java
+   │  │  │  └─ GlobalExceptionHandler.java
+   │  │  ├─ service/
+   │  │  │  └─ ForecastService.java
+   │  │  ├─ client/
+   │  │  │  ├─ GeocodingApi.java
+   │  │  │  ├─ ForecastApi.java
+   │  │  │  ├─ GeocodingClientRt.java               
+   │  │  │  └─ OpenMeteoForecastClientRt.java      
+   │  │  ├─ ai/
+   │  │  │  ├─ AiConfig.java
+   │  │  │  ├─ NarrationService.java
+   │  │  │  └─ StubNarrationService.java
+   │  │  ├─ config/
+   │  │  │  ├─ WebClientConfig.java
+   │  │  │  ├─ RestTemplateConfig.java
+   │  │  │  ├─ CacheConfig.java
+   │  │  │  └─ AppInfoContributor.java             # adds /actuator/info.app details
+   │  │  └─ dto/
+   │  │     └─ SunForecastResponse.java
+   │  └─ resources/
+   │     └─ application.yml
+   └─ test/
+      └─ java/com/rock8tech/sunforecast/
+         ├─ ForecastServiceTest.java
+         ├─ CityForecastControllerTest.java
+         ├─ NarrationServiceTest.java
+         ├─ PrettyTimeFormattingTest.java
+        ├─ IntegrationAiFallbackTest.java
+         └─ IntegrationFakeNarratorTest.java
+```
+
+

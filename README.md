@@ -57,7 +57,7 @@ http://localhost:8080/actuator/health/liveness
 http://localhost:8080/actuator/health/readiness
 ```
 
-### Generative AI enhancement (LangChain4j)
+###Generative AI enhancement (LangChain4j)
 
 **What we do**: after fetching sunrise/sunset from Open-Meteo, we ask an LLM (via LangChain4j) to turn the raw times into a short, friendly sentence. If AI is unavailable, we fall back to a safe stub so the API still works deterministically
 
@@ -96,6 +96,7 @@ public NarrationService narrationService() {
 
 ```
 
+
 - `service/ForecastService.java` – builds a clear prompt and calls the narrator:
 
 ```bash
@@ -106,7 +107,9 @@ String enhanced = narrationService.narrate(prompt);
 
 ```
 
-### How to run with/without AI:
+
+
+###How to run with/without AI:
 
 With AI (requires active quota):
 `OPENAI_API_KEY=sk-... mvn spring-boot:run`

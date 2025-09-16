@@ -1,0 +1,49 @@
+openapi: 3.0.3
+info:
+  title: Sun Forecast API
+  version: "0.0.1"
+  description: >
+    Returns tomorrow's sunrise and sunset for a city using Open-Meteo,
+    with a short LLM-enhanced narration.
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/sun-forecast:
+    get:
+      summary: Get sunrise/sunset for a city
+      parameters:
+        - in: query
+          name: city
+          required: true
+          schema:
+            type: string
+            example: Berlin
+          description: City name (letters/spaces/hyphen/dot)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  city: { type: string, example: Berlin }
+                  sunrise: { type: string, example: "2023-11-01T07:12:00+05:30" }
+                  sunset: { type: string, example: "2023-11-01T17:49:00+05:30" }
+                  enhanced_message: { type: string, example: "Tomorrow in Berlin, the sun will rise at 7:12 AM IST and set at 5:49 PM IST." }
+        '400':
+          description: Bad request (invalid or missing city)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "Invalid city name" }
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: "Unexpected error" }

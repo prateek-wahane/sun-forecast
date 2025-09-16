@@ -1,0 +1,62 @@
+package com.rock8tech.sunforecast;
+
+import com.rock8tech.sunforecast.ai.NarrationService;
+import com.rock8tech.sunforecast.client.GeocodeResponse;
+import com.rock8tech.sunforecast.client.GeocodingClient;
+import com.rock8tech.sunforecast.client.OpenMeteoForecastClient;
+import com.rock8tech.sunforecast.client.OpenMeteoForecastDto;
+import com.rock8tech.sunforecast.dto.SunForecastResponse;
+import com.rock8tech.sunforecast.service.ForecastService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import reactor.core.publisher.Mono;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+
+import com.rock8tech.sunforecast.client.GeocodingApi;
+import com.rock8tech.sunforecast.client.ForecastApi;
+
+public class PrettyTimeFormattingTest {
+
+    GeocodingApi geocodingClient = Mockito.mock(GeocodingApi.class);
+    ForecastApi forecastClient = Mockito.mock(ForecastApi.class);
+    // stub returns the prompt verbatim so we can assert formatted times appear
+    NarrationService narrationService = prompt -> prompt;
+
+    ForecastService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new ForecastService(geocodingClient, forecastClient, narrationService);
+    }
+
+    @Test
+    void formatsTo12HourAmPm() {
+        // Geocode → (lat,lon) for Delhi
+        GeocodeResponse geo = new GeocodeResponse();
+        GeocodeResponse.Result r = new GeocodeResponse.Result();
+        r.name = "Delhi"; r.latitude = 28.6137; r.longitude = 77.2090;
+        geo.results = List.of(r);
+        when(geocodingClient.geocode("Delhi")).thenReturn(Mono.just(geo));
+
+        // Forecast → provide two days so service picks "Tomorrow" (index 1)
+        OpenMeteoForecastDto dto = new OpenMeteoForecastDto();
+        OpenMeteoForecastDto.Daily daily = new OpenMeteoForecastDto.Daily();
+        daily.sunrise = List.of("2025-09-16T06:05", "2025-09-17T06:06"); // no offset on purpose
+        daily.sunset  = List.of("2025-09-16T18:45", "2025-09-17T18:46");
+        dto.daily = daily;
+        when(forecastClient.fetch(28.6137, 77.2090)).thenReturn(Mono.just(dto));
+
+        SunForecastResponse resp = service.getForecast("Delhi").block();
+        assertThat(resp).isNotNull();
+
+        // Assert the enhanced_message contains 12h formatted times (from index 1)
+        assertThat(resp.getEnhanced_message())
+                .contains("6:06 AM")
+                .contains("6:46 PM");
+    }
+}

@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: sun-forecast
+  cache:
+    type: caffeine
+
+app:
+  timezoneParam: Asia/Kolkata  # 'Asia/Kolkata' also works with Open-Meteo
+  openMeteo:
+    forecastUrl: https://api.open-meteo.com/v1/forecast
+    geocodeUrl: https://geocoding-api.open-meteo.com/v1/search
+    dailyParams: sunrise,sunset
+  http:
+    client: resttemplate   # or: webclient
+  ai:
+    provider: openai
+    model: gpt-4o-mini
+    temperature: 0.2
+    enabled: true
+
+caffeine:
+  caches:
+    forecastByCity: maximumSize=500,expireAfterWrite=3600s
+
+logging:
+  level:
+    org.springframework.web.reactive.function.client: DEBUG

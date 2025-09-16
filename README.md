@@ -160,33 +160,33 @@ mvn -U clean test
 ### Component view
 
 ```mermaid
-flowchart LR
-  subgraph Client
-    B[Browser / cURL / Postman]
-  end
+flowchart TD
+  %% Client
+  B[Browser Postman]
 
-  subgraph App[Spring Boot App]
-    C[Controller\n/api/sun-forecast]
+  %% App
+  subgraph App [Spring Boot App]
+    C[Controller: /api/sun-forecast]
     S[ForecastService]
     E[GlobalExceptionHandler]
-    CA[Caffeine Cache\nforecastByCity (async)]
-    AI[NarrationService\n(LangChain4j or Stub)]
-    ACT[Actuator\n/actuator/*]
+    CA[Cache: forecastByCity — async Caffeine]
+    AI[NarrationService: LangChain4j or Stub]
+    ACT[Actuator: /actuator/*]
   end
 
+  %% External
   subgraph External
-    OMg[Open-Meteo Geocoding API\n/v1/search]
-    OMf[Open-Meteo Forecast API\n/v1/forecast]
-    OAI[OpenAI API\n(via LangChain4j)]
+    OMg[Open-Meteo Geocoding API /v1/search]
+    OMf[Open-Meteo Forecast API /v1/forecast]
+    OAI[OpenAI API via LangChain4j]
   end
 
   B --> C --> S
-  S -->|@Cacheable| CA
   S -->|geocode| OMg
   S -->|forecast| OMf
   S -->|enhance message| AI --> OAI
+  S -. caches .-> CA
   C --> E
-  App --> ACT
 ```
 
 ### Request flow
@@ -197,8 +197,8 @@ sequenceDiagram
   participant U as User
   participant C as Controller
   participant S as ForecastService
-  participant GC as GeocodingClient (WebClient/RT)
-  participant FC as ForecastClient (WebClient/RT)
+  participant GC as GeocodingClient (RT)
+  participant FC as ForecastClient (RT)
   participant AI as NarrationService (L4J/Stub)
 
   U->>C: GET /api/sun-forecast?city=Berlin

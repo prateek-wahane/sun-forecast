@@ -57,14 +57,14 @@ http://localhost:8080/actuator/health/liveness
 http://localhost:8080/actuator/health/readiness
 ```
 
-#Generative AI enhancement (LangChain4j)
+###Generative AI enhancement (LangChain4j)
 
 **What we do**: after fetching sunrise/sunset from Open-Meteo, we ask an LLM (via LangChain4j) to turn the raw times into a short, friendly sentence. If AI is unavailable, we fall back to a safe stub so the API still works deterministically
 
 **Where it lives**:
 -`ai/NarrationService.java` – the L4J interface with system/user prompts:
 
-```
+```bash
 public interface NarrationService {
     @SystemMessage("""
     You produce short, friendly, factual explanations of sunrise and sunset times.
@@ -75,7 +75,8 @@ public interface NarrationService {
 ```
 
 - `ai/AiConfig.java` – wires LangChain4j’s `OpenAiChatModel` when `OPENAI_API_KEY` is present and `app.ai.enabled=true;` otherwise uses `StubNarrationService`:
-````
+
+````bash
 @Bean
 public NarrationService narrationService() {
     String apiKey = System.getenv("OPENAI_API_KEY");
@@ -92,11 +93,13 @@ public NarrationService narrationService() {
 ```
 
 -`service/ForecastService.java` – builds a clear prompt and calls the narrator:
-```
+
+```bash
 String prompt = String.format("%s in %s, the sun will rise at %s and set at %s IST.",
     (idx==1?"Tomorrow":"Today"), city, prettyTime(sunrise), prettyTime(sunset));
 String enhanced = narrationService.narrate(prompt);
 ```
+
 
 ###How to run with/without AI:
 
